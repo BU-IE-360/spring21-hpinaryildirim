@@ -1,4 +1,4 @@
-# H.Pınar Yıldırım Progress Journal
+# Progress Journal
 
 ## Homework0
 
