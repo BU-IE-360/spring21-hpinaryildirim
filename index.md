@@ -18,3 +18,8 @@
 [Here](files/IE360-Spring21-Homework3.html) is the Homework3 file.
 [Here](files/ie360-hw3.R) is the R-script file.
 
+## Project
+
+[Here](files/IE 360 Project.pdf) is the Project Report.
+[Here](files/ie360_proje.R) is the R-script file.
+
