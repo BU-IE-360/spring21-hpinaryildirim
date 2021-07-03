@@ -1,0 +1,3134 @@
+---
+title: "IE360-Spring21 HW4-6"
+author: "H.Pınar Yıldırım"
+date: "28 07 2021"
+output:
+  html_document:
+    code_folding: hide
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## HOMEWORK 4 - 5
+
+### INTRODUCTION
+
+The data set provided by Trendyol consists of 13 columns and 4331 rows. There are 9 products and for each there are 12 attributes for each day between 05-25-2020 and 31-05-2021.
+
+Type of event_date transformed to "Date" and "Day", "Month" and "Year" columns are added to the data set. 
+
+For each of 9 products a separate data set is constructed and observations ordered from old to new.
+
+
+```{r, message=FALSE, error=FALSE}
+library(data.table)
+library(lubridate)
+library(ggplot2)
+library(forecast)
+library(urca)
+
+
+setwd("C:/Users/Pınar YILDIRIM/Downloads")
+#Data download
+my_data= read.csv("ProjectRawData.csv")
+my_data=as.data.table(my_data)
+
+my_data$event_date=ymd(my_data$event_date)
+my_data[,"Day" := lubridate::wday(event_date, label=TRUE)]
+my_data[,"Month" := lubridate::month(event_date, label=TRUE)]
+my_data[,"Year" := lubridate::year(event_date)]
+
+
+#PRODUCTS
+
+###PRODUCT 1
+product1= my_data[my_data$product_content_id==31515569,]
+#order observations from old to new
+product1=(product1[order(product1$event_date),])
+my_data[product_content_id==31515569, product:="1"]
+
+
+###PRODUCT 2
+product2= my_data[my_data$product_content_id==32737302,]
+#order observations from old to new
+product2=(product2[order(product2$event_date),])
+my_data[product_content_id==32737302, product:="2"]
+
+
+###PRODUCT 3
+product3= my_data[my_data$product_content_id==32939029,]
+#order observations from old to new
+product3=(product3[order(product3$event_date),])
+my_data[product_content_id==32939029, product:="3"]
+
+
+
+###PRODUCT 4
+product4= my_data[my_data$product_content_id==4066298,]
+#order observations from old to new
+product4=(product4[order(product4$event_date),])
+my_data[product_content_id==4066298, product:="4"]
+
+
+###PRODUCT 5
+product5= my_data[my_data$product_content_id==48740784,]
+#order observations from old to new
+product5=(product5[order(product5$event_date),])
+my_data[product_content_id==48740784, product:="5"]
+
+
+
+###PRODUCT 6
+product6= my_data[my_data$product_content_id==6676673,]
+#order observations from old to new
+product6=(product6[order(product6$event_date),])
+my_data[product_content_id==6676673, product:="6"]
+
+
+###PRODUCT 7
+product7= my_data[my_data$product_content_id==7061886,]
+#order observations from old to new
+product7=(product7[order(product7$event_date),])
+my_data[product_content_id==7061886, product:="7"]
+
+
+
+###PRODUCT 8
+product8= my_data[my_data$product_content_id==73318567,]
+#order observations from old to new
+product8=(product8[order(product8$event_date),])
+my_data[product_content_id==73318567, product:="8"]
+
+
+###PRODUCT 9
+product9= my_data[my_data$product_content_id==85004,]
+#order observations from old to new
+product9=(product9[order(product9$event_date),])
+my_data[product_content_id==85004, product:="9"]
+
+
+accu=function(actual,forecast){
+  n=length(actual)
+  error=actual-forecast
+  error=complete.cases(error)
+  mean=mean(actual)
+  #sd=sd(actual)
+  #CV=sd/mean
+  FBias=sum(error)/sum(actual)
+  MAPE=sum(abs(error/actual))/n
+  RMSE=sqrt(sum(error^2)/n)
+  MAD=sum(abs(error))/n
+  MADP=sum(abs(error))/sum(abs(actual))
+  WMAPE=MAD/mean
+  l=data.frame(n,mean,FBias,MAPE,RMSE,MAD,MADP,WMAPE)
+  return(l)
+}
+
+
+```
+
+
+
+## DECOMPOSITION
+
+
+
+### Product 1
+
+ID of product 1 is "31515569" and it is a legging by "TRENDYOLMILLA". 
+
+
+```{r }
+(ggplot(product1,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 1",y="Sold Count", x="Event Date"))
+
+
+```
+
+
+
+#### Weekly Decomposition of Product 1
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+product1[,wday_mean := mean(sold_count), by=.(Day)]
+
+(ggplot(product1,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 1",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021.
+
+
+```{r }
+product1[,wday_mean := mean(sold_count), by=.(Day)]
+
+(ggplot(product1,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 1",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Third plot shows the average sold counts for each weekday for each month. It is possible to say that each weekday has different effects depending on the month and year. 
+
+
+```{r }
+product1[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product1,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 1",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Finally, when sold counts of each weekday is plotted for each year and month there is not a clear pattern as seen in the plot below.
+
+
+```{r }
+pr1_wday=product1[,list(wday_mean), by=.(Day, Month, year(event_date))]
+pr1_wday
+(ggplot(pr1_wday,aes(x=Day,y=wday_mean))+
+    geom_line(aes(group=factor(Month), color=Month))+
+    facet_grid(rows=pr1_wday$year)+
+    theme_minimal()+
+    labs(title="Product 1",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Time series of Prouduct 1 is decomposed weekly and additively. There is somewhat a seasonality in Trend term and Random term fails to satisfy constant variance assumption for a period. Test- statistic of KPSS test is smaller than the critical values which indicates stationarity. 
+
+
+```{r }
+weekly_pr1  = ts(product1$sold_count, freq=7)
+weekly_decomp_pr1_add = decompose(weekly_pr1)
+plot(weekly_decomp_pr1_add)
+test_stat <- ur.kpss(weekly_decomp_pr1_add$random, use.lag = "8")
+summary(test_stat)
+
+```
+
+
+
+In multiplicative decomposition there is still a seasonality in Trend term but random term has smaller variance than the additive decomposition. KPSS test statistic is greater than the additive decomposition.
+
+
+```{r }
+weekly_decomp_pr1_mult = decompose(weekly_pr1, type="multiplicative")
+plot(weekly_decomp_pr1_mult)
+test_stat <- ur.kpss(weekly_decomp_pr1_mult$random, use.lag = "8")
+summary(test_stat)
+
+
+
+```
+
+
+
+#### Monthly Decomposition of Product 1
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product1[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product1,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 1",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021.
+
+
+```{r }
+product1[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product1,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 1",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+
+Finally, when sold counts of each day of month is plotted for each 2020 and 2021 there a pattern is observed. On the 10th day sales are high and around 15th day sales drop.
+
+
+```{r }
+pr1_day=product1[,list(day_mean), by=.(day(event_date), year(event_date))]
+(ggplot(pr1_day,aes(x=day,y=day_mean))+
+    geom_line(aes(group=factor(year), color=factor(year)))+
+    theme_minimal()+
+    labs(title="Product 1",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+
+Additive monthly decomposition does not have a seasonality in Trend term.
+
+KPSS test has small test statistic
+
+```{r }
+monthly_pr1  = ts(product1$sold_count, freq=30)
+monthly_decomp_pr1 = decompose(monthly_pr1)
+plot(monthly_decomp_pr1)
+test_stat <- ur.kpss(monthly_decomp_pr1$random, use.lag = "12")
+summary(test_stat)
+
+
+
+```
+
+
+
+```{r }
+monthly_decomp_pr1_mult = decompose(monthly_pr1, type="multiplicative")
+plot(monthly_decomp_pr1_mult)
+test_stat <- ur.kpss(monthly_decomp_pr1_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+
+```
+
+
+
+The smallest test statistics belongs to weekly additive decomposition for Product 1.
+
+
+
+### Product 2
+
+ID of product 2 is "32737302" and it is a bikini top by "TRENDYOLMILLA". 
+
+
+```{r }
+(ggplot(product2,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 2",y="Sold Count", x="Event Date"))
+
+```
+
+
+#### Weekly Decomposition of Product 2
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+
+product2[,wday_mean := mean(sold_count), by=.(Day)]
+(ggplot(product2,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 2",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021. The change in mean is due to 2020 winter period where almost zero products are sold.
+
+
+```{r }
+product2[,wday_mean := mean(sold_count), by=.(year(event_date),Day)]
+(ggplot(product2,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 2",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+Third plot shows the average sold counts for each weekday for each month. It is possible to say that each weekday has more or less similar effects for each month and year. 
+
+
+```{r }
+product2[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product2,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 2",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Finally, when sold counts of each weekday is plotted for each year and month there is a  pattern pbserved in summer months.
+
+
+
+```{r }
+pr2_wday=product2[,list(wday_mean), by=.(Day, Month, year(event_date))]
+(ggplot(pr2_wday,aes(x=Day,y=wday_mean))+
+    geom_line(aes(group=factor(Month), color=Month))+
+    facet_grid(rows=pr2_wday$year)+
+    theme_minimal()+
+    labs(title="Product 2",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Time series of Prouduct 2 is decomposed weekly and additively. There is somewhat a seasonality in Trend term and Random term fails to satisfy constant variance assumption. 
+
+
+```{r }
+weekly_pr2  = ts(product2$sold_count, freq=7)
+weekly_decomp_pr2_add = decompose(weekly_pr2)
+plot(weekly_decomp_pr2_add)
+test_stat <- ur.kpss(weekly_decomp_pr2_add$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+In multiplicative decomposition there is still a seasonality in Trend term but random term has smaller variance than the additive decomposition. 
+
+
+```{r }
+weekly_decomp_pr2_mult = decompose(weekly_pr2, type="multiplicative")
+plot(weekly_decomp_pr2_mult)
+test_stat <- ur.kpss(weekly_decomp_pr2_mult$random, use.lag = "8")
+summary(test_stat)
+
+```
+
+
+
+#### Monthly Decomposition of Product 2
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product2[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product2,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 2",y="Average Sold Count by Days of Month", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021. Patterns are similar in both years.
+
+
+```{r }
+product2[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product2,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 2",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+
+```
+
+
+
+Finally, when sold counts of each day of month is plotted for each 2020 and 2021 the patterns are not similar. This observation may be due to the winter period of 2020.
+
+
+```{r }
+pr2_day=product2[,list(day_mean), by=.(day(event_date), year(event_date))]
+(ggplot(pr2_day,aes(x=day,y=day_mean))+
+    geom_line(aes(group=factor(year), color=factor(year)))+
+    theme_minimal()+
+    labs(title="Product 2",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+
+Constant variance assumption of random term is violated. 
+
+
+```{r }
+monthly_pr2  = ts(product2$sold_count, freq=30)
+monthly_decomp_pr2 = decompose(monthly_pr2)
+plot(monthly_decomp_pr2)
+test_stat <- ur.kpss(weekly_decomp_pr2_mult$random, use.lag = "12")
+summary(test_stat)
+
+```
+
+
+
+```{r }
+monthly_decomp_pr2_mult = decompose(monthly_pr2, type="multiplicative")
+plot(monthly_decomp_pr2_mult)
+test_stat <- ur.kpss(weekly_decomp_pr2_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+Additive weekly decomposition is chosen for Product 2 since its test statistic is the smaller 
+
+
+### Product 3
+
+ID of product 3 is "32939029" and it is a chargable tooth brush by "Oral-B". 
+
+
+```{r }
+(ggplot(product3,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 3",y="Sold Count", x="Event Date"))
+
+```
+
+
+#### Weekly Decomposition of Product 3
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+
+product3[,wday_mean := mean(sold_count), by=.(Day)]
+(ggplot(product3,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 3",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021. 
+
+
+```{r }
+product3[,wday_mean := mean(sold_count), by=.(year(event_date),Day)]
+(ggplot(product3,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 3",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+Third plot shows the average sold counts for each weekday for each month. It is possible to say that each weekday has more or less similar effects for each month and year. 
+
+
+```{r }
+product3[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product3,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 3",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Finally, when sold counts of each weekday is plotted for each year and month a  pattern is observed.
+
+
+
+```{r }
+pr3_wday=product3[,list(wday_mean), by=.(Day, Month, year(event_date))]
+(ggplot(pr3_wday,aes(x=Day,y=wday_mean))+
+    geom_line(aes(group=factor(Month), color=Month))+
+    facet_grid(rows=pr3_wday$year)+
+    theme_minimal()+
+    labs(title="Product 3",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Time series of Prouduct 3 is decomposed weekly and additively. There is somewhat a seasonality in Trend term and Random term fails to satisfy constant variance assumption. 
+
+
+```{r }
+weekly_pr3  = ts(product3$sold_count, freq=7)
+weekly_decomp_pr3_add = decompose(weekly_pr3)
+plot(weekly_decomp_pr3_add)
+test_stat <- ur.kpss(weekly_decomp_pr3_add$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+In multiplicative decomposition there is still a seasonality in Trend term but random term has smaller variance than the additive decomposition.
+
+```{r }
+
+weekly_decomp_pr3_mult = decompose(weekly_pr3, type="multiplicative")
+plot(weekly_decomp_pr3_mult)
+test_stat <- ur.kpss(weekly_decomp_pr3_mult$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+#### Monthly Decomposition of Product 3
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product3[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product3,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 3",y="Average Sold Count by Days of Month", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021.
+
+
+```{r }
+product3[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product3,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 3",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+
+```
+
+
+
+Finally, when sold counts of each day of month is plotted for each 2020 and 2021 a pattern is observed in the plot below.
+
+
+```{r }
+pr3_day=product3[,list(day_mean), by=.(day(event_date), year(event_date))]
+(ggplot(pr3_day,aes(x=day,y=day_mean))+
+    geom_line(aes(group=factor(year), color=factor(year)))+
+    theme_minimal()+
+    labs(title="Product 3",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+
+In additive decomposition constant variance assumption of random term is violated. 
+
+
+```{r }
+monthly_pr3  = ts(product3$sold_count, freq=30)
+monthly_decomp_pr3 = decompose(monthly_pr3)
+plot(monthly_decomp_pr3)
+test_stat <- ur.kpss(monthly_decomp_pr3$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+
+```{r }
+monthly_decomp_pr3_mult = decompose(monthly_pr3, type="multiplicative")
+plot(monthly_decomp_pr3_mult)
+test_stat <- ur.kpss(monthly_decomp_pr3_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+Additive weekly decomposition is chosen for Product 3 since its test statistics is the smallest. 
+
+
+
+### Product 4
+
+ID of product 4 is "4066298" and it is a baby wet wipes by "Sleepy". 
+
+
+```{r }
+(ggplot(product4,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 4",y="Sold Count", x="Event Date"))
+
+```
+
+
+#### Weekly Decomposition of Product 4
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+
+product4[,wday_mean := mean(sold_count), by=.(Day)]
+(ggplot(product4,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 4",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021. 
+
+
+```{r }
+product4[,wday_mean := mean(sold_count), by=.(year(event_date),Day)]
+(ggplot(product4,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 4",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+Third plot shows the average sold counts for each weekday for each month. It is possible to say that each weekday has more or less similar effects for each month and year. 
+
+
+```{r }
+product4[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product4,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 4",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Finally, when sold counts of each weekday is plotted for each year and month a  pattern is observed mostly in winter months.
+
+
+
+```{r }
+pr4_wday=product4[,list(wday_mean), by=.(Day, Month, year(event_date))]
+(ggplot(pr4_wday,aes(x=Day,y=wday_mean))+
+    geom_line(aes(group=factor(Month), color=Month))+
+    facet_grid(rows=pr4_wday$year)+
+    theme_minimal()+
+    labs(title="Product 4",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Time series of Prouduct 4 is decomposed weekly and additively. There is somewhat a seasonality in Trend term and Random term fails to satisfy constant variance assumption.
+
+
+```{r }
+weekly_pr4  = ts(product4$sold_count, freq=7)
+weekly_decomp_pr4_add = decompose(weekly_pr4)
+plot(weekly_decomp_pr4_add)
+test_stat <- ur.kpss(weekly_decomp_pr4_add$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+In multiplicative decomposition there is still a seasonality in Trend term but random term has more constant variance than the additive decomposition.
+
+```{r }
+weekly_decomp_pr4_mult = decompose(weekly_pr4, type="multiplicative")
+plot(weekly_decomp_pr4_mult)
+test_stat <- ur.kpss(weekly_decomp_pr4_mult$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+#### Monthly Decomposition of Product 4
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product4[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product4,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 4",y="Average Sold Count by Days of Month", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021.
+
+
+```{r }
+product4[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product4,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 4",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+
+```
+
+
+
+Finally, when sold counts of each day of month is plotted for each 2020 and 2021.
+
+
+
+```{r }
+pr4_day=product4[,list(day_mean), by=.(day(event_date), year(event_date))]
+(ggplot(pr4_day,aes(x=day,y=day_mean))+
+    geom_line(aes(group=factor(year), color=factor(year)))+
+    theme_minimal()+
+    labs(title="Product 4",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+Monthly decompositions of sold count of Product 4 are given below.
+
+Seasonality in trend is removed.
+
+
+```{r }
+monthly_pr4  = ts(product4$sold_count, freq=30)
+monthly_decomp_pr4 = decompose(monthly_pr4)
+plot(monthly_decomp_pr4)
+test_stat <- ur.kpss(monthly_decomp_pr4$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+
+
+```{r }
+monthly_decomp_pr4_mult = decompose(monthly_pr4, type="multiplicative")
+plot(monthly_decomp_pr4_mult)
+test_stat <- ur.kpss(monthly_decomp_pr4_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+Additive weekly decomposition is chosen for Product 4 since its test statistics is the smallest and random term is the most similar to a white noise series. 
+
+
+
+### Product 5
+
+ID of product 5 is "48740784" and it is a coat by "Altınyıldız Classics". 
+
+
+```{r }
+(ggplot(product5,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 5",y="Sold Count", x="Event Date"))
+
+```
+
+
+#### Weekly Decomposition of Product 5
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+
+product5[,wday_mean := mean(sold_count), by=.(Day)]
+(ggplot(product5,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 5",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021. Coat sales mostly occur in winter months. Since winter of 2021 is not observed yet mean of the sold count is smaller for 2021. 
+
+
+```{r }
+product5[,wday_mean := mean(sold_count), by=.(year(event_date),Day)]
+(ggplot(product5,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 5",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+Third plot shows the average sold counts for each weekday for each month. It is possible to say that each weekday has more or less similar effects for each month and year. 
+
+
+```{r }
+product5[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product5,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 5",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+
+Time series of Prouduct 5 is decomposed weekly and additively. Trend term indicates the winter period where the coat sales are higher and random term has constant variance except an outlier period.
+
+```{r }
+weekly_pr5  = ts(product5$sold_count, freq=7)
+weekly_decomp_pr5_add = decompose(weekly_pr5)
+plot(weekly_decomp_pr5_add)
+test_stat <- ur.kpss(weekly_decomp_pr5_add$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+In multiplicative decomposition there is still a seasonality in Trend term and random term has less constant variance than the additive decomposition.
+
+```{r }
+weekly_decomp_pr5_mult = decompose(weekly_pr5, type="multiplicative")
+plot(weekly_decomp_pr5_mult)
+test_stat <- ur.kpss(weekly_decomp_pr5_mult$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+#### Monthly Decomposition of Product 5
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product5[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product5,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 5",y="Average Sold Count by Days of Month", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021.
+
+
+```{r }
+product5[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product5,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 5",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+
+```
+
+
+
+Monthly decompositions of sold count of Product 5 are given below. Trend term show the high coat sale period. Effect of seasonality can be observed.
+
+
+
+```{r }
+monthly_pr5  = ts(product5$sold_count, freq=30)
+monthly_decomp_pr5 = decompose(monthly_pr5)
+plot(monthly_decomp_pr5)
+test_stat <- ur.kpss(monthly_decomp_pr5$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+
+
+```{r }
+monthly_decomp_pr5_mult = decompose(monthly_pr5, type="multiplicative")
+plot(monthly_decomp_pr5_mult)
+test_stat <- ur.kpss(monthly_decomp_pr5_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+Additive weekly decomposition is chosen for Product 5 since its test statistics is the smallest and random term is the most similar to a white noise series. 
+
+
+
+### Product 6
+
+ID of product 6 is "6676673" and it is bluetooth earphones by "Xiaomi". 
+
+
+```{r }
+(ggplot(product6,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 6",y="Sold Count", x="Event Date"))
+
+```
+
+
+#### Weekly Decomposition of Product 6
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+
+product6[,wday_mean := mean(sold_count), by=.(Day)]
+(ggplot(product6,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 6",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021. 
+
+
+```{r }
+product6[,wday_mean := mean(sold_count), by=.(year(event_date),Day)]
+(ggplot(product6,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 6",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+Third plot shows the average sold counts for each weekday for each month. It is possible to say that each weekday has more or less similar effects for each month and year. 
+
+
+```{r }
+product6[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product6,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 6",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Finally, when sold counts of each weekday is plotted for each year and month a  pattern is observed for some of the months.
+
+
+
+```{r }
+pr6_wday=product6[,list(wday_mean), by=.(Day, Month, year(event_date))]
+(ggplot(pr6_wday,aes(x=Day,y=wday_mean))+
+    geom_line(aes(group=factor(Month), color=Month))+
+    facet_grid(rows=pr6_wday$year)+
+    theme_minimal()+
+    labs(title="Product 6",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+
+Time series of Prouduct 6 is decomposed weekly and additively. Seasonality can be observed. Random term has constant mean and more or less constant variance. 
+
+```{r }
+weekly_pr6  = ts(product6$sold_count, freq=7)
+weekly_decomp_pr6_add = decompose(weekly_pr6)
+plot(weekly_decomp_pr6_add)
+test_stat <- ur.kpss(weekly_decomp_pr6_add$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+```{r }
+weekly_decomp_pr6_mult = decompose(weekly_pr6, type="multiplicative")
+plot(weekly_decomp_pr6_mult)
+test_stat <- ur.kpss(weekly_decomp_pr6_mult$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+#### Monthly Decomposition of Product 6
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product6[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product6,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 6",y="Average Sold Count by Days of Month", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021.
+
+
+```{r }
+product6[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product6,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 6",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+
+```
+
+
+
+Finally, when sold counts of each day of month is plotted for each 2020 and 2021. A clear pattern can be observed from the plot below.
+
+
+
+```{r }
+pr6_day=product6[,list(day_mean), by=.(day(event_date), year(event_date))]
+(ggplot(pr6_day,aes(x=day,y=day_mean))+
+    geom_line(aes(group=factor(year), color=factor(year)))+
+    theme_minimal()+
+    labs(title="Product 6",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+Monthly decompositions of sold count of Product 6 are given below. Trend term does not include seasonality. Random term satisfies assumptions.
+
+
+```{r }
+monthly_pr6  = ts(product6$sold_count, freq=30)
+monthly_decomp_pr6 = decompose(monthly_pr6)
+plot(monthly_decomp_pr6)
+test_stat <- ur.kpss(monthly_decomp_pr6$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+
+
+```{r }
+monthly_decomp_pr6_mult = decompose(monthly_pr6, type="multiplicative")
+plot(monthly_decomp_pr6_mult)
+test_stat <- ur.kpss(monthly_decomp_pr6_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+Additive weekly decomposition is chosen for Product 6 since its test statistics is the smallest and random term is the most similar to a white noise series. 
+
+
+### Product 7
+
+ID of product 7 is "7061886" and it is bluetooth earphones by "Xiaomi". 
+
+
+```{r }
+(ggplot(product7,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 7",y="Sold Count", x="Event Date"))
+
+```
+
+
+#### Weekly Decomposition of Product 7
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+
+product7[,wday_mean := mean(sold_count), by=.(Day)]
+(ggplot(product7,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 7",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021. 
+
+
+```{r }
+product7[,wday_mean := mean(sold_count), by=.(year(event_date),Day)]
+(ggplot(product7,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 7",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+Third plot shows the average sold counts for each weekday for each month. 
+
+
+
+```{r }
+product7[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product7,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 7",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+Finally, when sold counts of each weekday is plotted for each year and month a  pattern is observed.
+
+
+
+```{r }
+pr7_wday=product7[,list(wday_mean), by=.(Day, Month, year(event_date))]
+(ggplot(pr7_wday,aes(x=Day,y=wday_mean))+
+    geom_line(aes(group=factor(Month), color=Month))+
+    facet_grid(rows=pr7_wday$year)+
+    theme_minimal()+
+    labs(title="Product 7",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+
+Time series of Prouduct 7 is decomposed weekly and additively. Seasonality can be observed. Random term has constant mean and more or less constant variance except in some periods that could be outliers. 
+
+
+
+```{r }
+weekly_pr7  = ts(product7$sold_count, freq=7)
+weekly_decomp_pr7_add = decompose(weekly_pr7)
+plot(weekly_decomp_pr7_add)
+test_stat <- ur.kpss(weekly_decomp_pr7_add$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+For multiplicative series variance of random term is more close to constant.
+
+
+```{r }
+weekly_decomp_pr7_mult = decompose(weekly_pr7, type="multiplicative")
+plot(weekly_decomp_pr7_mult)
+test_stat <- ur.kpss(weekly_decomp_pr7_mult$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+#### Monthly Decomposition of Product 7
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product7[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product7,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 7",y="Average Sold Count by Days of Month", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021.
+
+
+```{r }
+product7[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product7,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 7",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+
+```
+
+
+Finally, when sold counts of each day of month is plotted for each 2020 and 2021.
+
+
+
+```{r }
+pr7_day=product7[,list(day_mean), by=.(day(event_date), year(event_date))]
+(ggplot(pr7_day,aes(x=day,y=day_mean))+
+    geom_line(aes(group=factor(year), color=factor(year)))+
+    theme_minimal()+
+    labs(title="Product 7",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+Monthly decompositions of sold count of Product 7 are given below. Trend term does not include seasonality. Random term satisfies assumptions.
+
+
+```{r }
+monthly_pr7  = ts(product7$sold_count, freq=30)
+monthly_decomp_pr7 = decompose(monthly_pr7)
+plot(monthly_decomp_pr7)
+test_stat <- ur.kpss(monthly_decomp_pr7$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+
+
+```{r }
+monthly_decomp_pr7_mult = decompose(monthly_pr7, type="multiplicative")
+plot(monthly_decomp_pr7_mult)
+test_stat <- ur.kpss(monthly_decomp_pr7_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+Additive weekly decomposition is chosen for Product 7 since its test statistics is the smallest and random term is the most similar to a white noise series. 
+
+
+### Product 8
+
+ID of product 8 is "73318567" and it is a bikini top by "TRENDYOL MILLA". 
+
+
+```{r }
+(ggplot(product8,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 8",y="Sold Count", x="Event Date"))
+
+```
+
+
+#### Weekly Decomposition of Product 8
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+
+product8[,wday_mean := mean(sold_count), by=.(Day)]
+(ggplot(product8,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 8",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021. There is not any sales record in 2020. 
+
+
+```{r }
+product8[,wday_mean := mean(sold_count), by=.(year(event_date),Day)]
+(ggplot(product8,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 8",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+Third plot shows the average sold counts for each weekday for each month. 
+
+
+
+```{r }
+product8[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product8,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 8",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Time series of Prouduct 8 is decomposed weekly and additively. Seasonality can be observed. Trend term specifies the periods where the sold count is non-zero.
+
+
+```{r }
+weekly_pr8  = ts(product8$sold_count, freq=7)
+weekly_decomp_pr8_add = decompose(weekly_pr8)
+plot(weekly_decomp_pr8_add)
+test_stat <- ur.kpss(weekly_decomp_pr8_add$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+
+```{r }
+weekly_decomp_pr8_mult = decompose(weekly_pr8, type="multiplicative")
+plot(weekly_decomp_pr8_mult)
+test_stat <- ur.kpss(weekly_decomp_pr8_mult$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+#### Monthly Decomposition of Product 8
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product8[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product8,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 8",y="Average Sold Count by Days of Month", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021.
+
+
+```{r }
+product8[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product8,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 8",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+
+```
+
+
+Finally, when sold counts of each day of month is plotted for each 2020 and 2021.
+
+
+
+```{r }
+pr8_day=product8[,list(day_mean), by=.(day(event_date), year(event_date))]
+(ggplot(pr8_day,aes(x=day,y=day_mean))+
+    geom_line(aes(group=factor(year), color=factor(year)))+
+    theme_minimal()+
+    labs(title="Product 8",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+Monthly decompositions of sold count of Product 8 are given below. 
+
+
+```{r }
+monthly_pr8  = ts(product8$sold_count, freq=30)
+monthly_decomp_pr8 = decompose(monthly_pr8)
+plot(monthly_decomp_pr8)
+test_stat <- ur.kpss(monthly_decomp_pr8$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+
+
+```{r }
+monthly_decomp_pr8_mult = decompose(monthly_pr8, type="multiplicative")
+plot(monthly_decomp_pr8_mult)
+test_stat <- ur.kpss(monthly_decomp_pr8_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+Additive monthly decomposition is chosen for Product 8 since its test statistics is the smallest and random term is the most similar to a white noise series. 
+
+
+### Product 9
+
+ID of product 9 is "85004" and it is face cleaner by "La Roche Posay". 
+
+
+```{r }
+(ggplot(product9,aes(x=event_date,y=sold_count))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 9",y="Sold Count", x="Event Date"))
+
+```
+
+
+#### Weekly Decomposition of Product 9
+
+
+The first plot shows the average of products sold for each weekday.
+
+
+```{r }
+
+product9[,wday_mean := mean(sold_count), by=.(Day)]
+(ggplot(product9,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 9",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each weekday in 2020 and 2021. 
+
+
+```{r }
+product9[,wday_mean := mean(sold_count), by=.(year(event_date),Day)]
+(ggplot(product9,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 9",y="Average Sold Count by Weekdays", x="Event Date"))
+
+```
+
+
+Third plot shows the average sold counts for each weekday for each month. Effect of each day of week is similar for each month.
+
+
+
+```{r }
+product9[,wday_mean := mean(sold_count), by=.(year(event_date),Day,Month)]
+(ggplot(product9,aes(x=event_date,y=wday_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 9",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+Finally, when sold counts of each weekday is plotted for each year and month a pattern is observed.
+
+
+
+```{r }
+pr9_wday=product9[,list(wday_mean), by=.(Day, Month, year(event_date))]
+(ggplot(pr9_wday,aes(x=Day,y=wday_mean))+
+    geom_line(aes(group=factor(Month), color=Month))+
+    facet_grid(rows=pr9_wday$year)+
+    theme_minimal()+
+    labs(title="Product 9",y="Average Sold Count by Weekdays", x="Event Date"))
+
+
+```
+
+
+
+Time series of Prouduct 9 is decomposed weekly and additively. Seasonality can be observed. Trend term has somewhat a seasonality. Random term has constant mean and more or less constant variance except in some periods that could be outliers. 
+
+
+
+```{r }
+weekly_pr9  = ts(product9$sold_count, freq=7)
+weekly_decomp_pr9_add = decompose(weekly_pr9)
+plot(weekly_decomp_pr9_add)
+test_stat <- ur.kpss(weekly_decomp_pr9_add$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+For multiplicative series variance of random term is more close to constant.
+
+
+```{r }
+weekly_decomp_pr9_mult = decompose(weekly_pr9, type="multiplicative")
+plot(weekly_decomp_pr9_mult)
+test_stat <- ur.kpss(weekly_decomp_pr9_mult$random, use.lag = "8")
+summary(test_stat)
+
+
+```
+
+
+
+#### Monthly Decomposition of Product 9
+
+
+The first plot shows the average of products sold for each day of month.
+
+
+```{r }
+product9[,day_mean := mean(sold_count), by=.(day(event_date))]
+(ggplot(product9,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 9",y="Average Sold Count by Days of Month", x="Event Date"))
+
+```
+
+
+
+Second plot shows the difference of average sold counts for each day of month in 2020 and 2021.
+
+
+```{r }
+product9[,day_mean := mean(sold_count), by=.(year(event_date),day(event_date))]
+(ggplot(product9,aes(x=event_date,y=day_mean))+
+    geom_line()+
+    theme_minimal()+
+    labs(title="Product 9",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+
+```
+
+
+Finally, when sold counts of each day of month is plotted for each 2020 and 2021. A pattern could be observed.
+
+
+
+```{r }
+pr9_day=product9[,list(day_mean), by=.(day(event_date), year(event_date))]
+(ggplot(pr9_day,aes(x=day,y=day_mean))+
+    geom_line(aes(group=factor(year), color=factor(year)))+
+    theme_minimal()+
+    labs(title="Product 9",y="Average Sold Count by Days of Month", x="Event Date"))
+
+
+```
+
+
+Monthly decomposition of sold count of Product 9 are given below. Trend term does not include seasonality. 
+
+
+```{r }
+monthly_pr9  = ts(product9$sold_count, freq=30)
+monthly_decomp_pr9 = decompose(monthly_pr9)
+plot(monthly_decomp_pr9)
+test_stat <- ur.kpss(monthly_decomp_pr9$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+
+
+```{r }
+monthly_decomp_pr9_mult = decompose(monthly_pr9, type="multiplicative")
+plot(monthly_decomp_pr9_mult)
+test_stat <- ur.kpss(monthly_decomp_pr9_mult$random, use.lag = "12")
+summary(test_stat)
+
+
+```
+
+
+Additive weekly decomposition is chosen for Product 9 since its test statistics is the smallest and random term is the most similar to a white noise series. 
+
+
+## ARIMA MODELS
+
+
+### Product 1
+
+Product 1 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr1  = ts(product1$sold_count, freq=7)
+weekly_decomp_pr1_add = decompose(weekly_pr1)
+plot(weekly_decomp_pr1_add$random)
+
+
+```
+
+
+ACF plot of the random term shows sinusodial behavior and PACF plot has some spikes until lag 3 with some what an exponential decay behavior. ARIMA(p,0,q) models will be used.
+
+
+```{r }
+
+acf(weekly_decomp_pr1_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr1_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+
+ARIMA(p,0,0) models with different p values  will be tried. After p=8 AIC values starts to increase.
+
+
+```{r }
+
+AIC(arima(weekly_decomp_pr1_add$random, order = c(1,0,0)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(2,0,0)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(3,0,0)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(4,0,0)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(5,0,0)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(6,0,0)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(7,0,0)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(8,0,0)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(9,0,0)))
+
+```
+
+ARIMA (0,0,q) models with different q values will be tried. After q=9 AIC values starts to increase
+
+
+```{r }
+
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,1)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,2)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,3)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,4)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,5)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,6)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,7)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,8)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,9)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,10)))
+AIC(arima(weekly_decomp_pr1_add$random, order = c(0,0,11)))
+
+```
+
+Combining two models as ARIMA(8,0,9)
+
+```{r }
+
+model1 = arima(weekly_decomp_pr1_add$random, order = c(8,0,9))
+AIC(model1)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr1_fitted = weekly_decomp_pr1_add$random - residuals(model1)
+pr1_fitted_transformed = pr1_fitted+weekly_decomp_pr1_add$seasonal+weekly_decomp_pr1_add$trend
+pr1_predictions=cbind(sold_count=weekly_pr1,fitted=pr1_fitted_transformed)
+pr1_predictions=as.data.table(pr1_predictions)
+pr1_predictions$date=product1$event_date
+
+ggplot(pr1_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_1 = accu(pr1_predictions$sold_count, pr1_predictions$fitted)
+print(accu_1)
+
+```
+
+
+
+
+### Product 2
+
+Product 2 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr2= ts(product2$sold_count, freq=7)
+weekly_decomp_pr2_add = decompose(weekly_pr2)
+plot(weekly_decomp_pr2_add$random)
+
+
+```
+
+
+ACF plot of the random term shows sinusodial behavior and PACF plot has some spikes until lag 4 with some what an exponential decay behavior. Behaviour is similar to the product 1. ARIMA (p,0,q) models will be used.
+
+
+```{r }
+
+acf(weekly_decomp_pr2_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr2_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+
+ARIMA(p,0,0) models with different p values  will be tried. After p=8 AIC values starts to increase.
+
+
+```{r }
+
+AIC(arima(weekly_decomp_pr2_add$random, order = c(1,0,0)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(2,0,0)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(3,0,0)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(4,0,0)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(5,0,0)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(6,0,0)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(7,0,0)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(8,0,0)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(9,0,0)))
+
+```
+
+ARIMA (0,0,q) models with different q values will be tried. After q=7 AIC values starts to increase
+
+
+```{r }
+
+AIC(arima(weekly_decomp_pr2_add$random, order = c(0,0,1)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(0,0,2)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(0,0,3)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(0,0,4)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(0,0,5)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(0,0,6)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(0,0,7)))
+AIC(arima(weekly_decomp_pr2_add$random, order = c(0,0,8)))
+
+```
+
+Combining two models as ARIMA(8,0,7)
+
+```{r }
+
+model2 = arima(weekly_decomp_pr2_add$random, order = c(8,0,7))
+AIC(model2)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr2_fitted = weekly_decomp_pr2_add$random - residuals(model2)
+pr2_fitted_transformed = pr2_fitted+weekly_decomp_pr2_add$seasonal+weekly_decomp_pr2_add$trend
+pr2_predictions=cbind(sold_count=weekly_pr2,fitted=pr2_fitted_transformed)
+pr2_predictions=as.data.table(pr2_predictions)
+pr2_predictions$date=product2$event_date
+
+ggplot(pr2_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_2 = accu(pr2_predictions$sold_count, pr2_predictions$fitted)
+print(accu_2)
+
+```
+
+
+
+
+### Product 3
+
+Product 3 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr3= ts(product3$sold_count, freq=7)
+weekly_decomp_pr3_add = decompose(weekly_pr3)
+plot(weekly_decomp_pr3_add$random)
+
+
+```
+
+
+ACF plot of the random term shows sinusodial behavior as well as the PACF plot. ARIMA(p,0,q) models will be used.
+
+
+```{r }
+
+acf(weekly_decomp_pr3_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr3_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+
+ARIMA(p,0,0) models with different p values  will be tried. After p=10 AIC values starts to increase.
+
+
+```{r }
+
+AIC(arima(weekly_decomp_pr3_add$random, order = c(1,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(2,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(3,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(4,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(5,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(6,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(7,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(8,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(9,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(10,0,0)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(11,0,0)))
+
+
+```
+
+ARIMA (0,0,q) models with different q values will be tried. q=3 will be used since the decrease in AIC values is very small after 3.
+
+
+```{r }
+
+AIC(arima(weekly_decomp_pr3_add$random, order = c(0,0,1)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(0,0,2)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(0,0,3)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(0,0,4)))
+AIC(arima(weekly_decomp_pr3_add$random, order = c(0,0,5)))
+
+```
+
+Combining two models as ARIMA(10,0,3)
+
+```{r }
+
+model3 = arima(weekly_decomp_pr3_add$random, order = c(10,0,3))
+AIC(model3)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr3_fitted = weekly_decomp_pr3_add$random - residuals(model3)
+pr3_fitted_transformed = pr3_fitted+weekly_decomp_pr3_add$seasonal+weekly_decomp_pr3_add$trend
+pr3_predictions=cbind(sold_count=weekly_pr3,fitted=pr3_fitted_transformed)
+pr3_predictions=as.data.table(pr3_predictions)
+pr3_predictions$date=product3$event_date
+
+ggplot(pr3_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_3 = accu(pr3_predictions$sold_count, pr3_predictions$fitted)
+print(accu_3)
+
+```
+
+
+
+### Product 4
+
+Product 4 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr4= ts(product4$sold_count, freq=7)
+weekly_decomp_pr4_add = decompose(weekly_pr4)
+plot(weekly_decomp_pr4_add$random)
+
+
+```
+
+
+ACF plot of the random term shows sinusodial behavior as well and PACF plot has spikes. There is a significant spike in lag 2 and 4. Therefore ARIMA(2,0,0) and ARIMA (4,0,0) will be tried.
+
+
+```{r }
+
+acf(weekly_decomp_pr4_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr4_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+
+ARIMA(2,0,0)
+
+
+```{r }
+AIC(arima(weekly_decomp_pr4_add$random, order = c(2,0,0)))
+
+
+```
+
+ARIMA(4,0,0)
+
+
+```{r }
+AIC(arima(weekly_decomp_pr4_add$random, order = c(4,0,0)))
+
+```
+ARIMA(4,0,0) model will be used since it has lower AIC value.
+
+ARIMA(0,0,q) models shows that when q=0 AIC value is smaller.
+
+```{r }
+
+AIC(arima(weekly_decomp_pr4_add$random, order = c(0,0,1)))
+AIC(arima(weekly_decomp_pr4_add$random, order = c(0,0,2)))
+AIC(arima(weekly_decomp_pr4_add$random, order = c(0,0,3)))
+AIC(arima(weekly_decomp_pr4_add$random, order = c(0,0,4)))
+AIC(arima(weekly_decomp_pr4_add$random, order = c(0,0,5)))
+
+```
+
+Combining two models as ARIMA(4,0,4)
+
+```{r }
+
+model4 = arima(weekly_decomp_pr4_add$random, order = c(4,0,4))
+AIC(model4)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr4_fitted = weekly_decomp_pr4_add$random - residuals(model4)
+pr4_fitted_transformed = pr4_fitted+weekly_decomp_pr4_add$seasonal+weekly_decomp_pr4_add$trend
+pr4_predictions=cbind(sold_count=weekly_pr4,fitted=pr4_fitted_transformed)
+pr4_predictions=as.data.table(pr4_predictions)
+pr4_predictions$date=product4$event_date
+
+ggplot(pr4_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_4 = accu(pr4_predictions$sold_count, pr4_predictions$fitted)
+print(accu_4)
+
+```
+
+
+
+
+### Product 5
+
+Product 5 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr5= ts(product5$sold_count, freq=7)
+weekly_decomp_pr5_add = decompose(weekly_pr5)
+plot(weekly_decomp_pr5_add$random)
+
+
+```
+
+
+ACF plot of the random term has a spike at a lag smaller than 1. sinusodial. PACF plot shows exponential decay at some point and sinusodial behaviour after. 
+
+
+```{r }
+
+acf(weekly_decomp_pr5_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr5_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+ARIMA(0,0,q) models with q values (1,2,3,4,5) will be tried. Smallest AIC value belongs to ARIMA(0,0,5)
+
+
+```{r }
+AIC(arima(weekly_decomp_pr5_add$random, order = c(0,0,1)))
+AIC(arima(weekly_decomp_pr5_add$random, order = c(0,0,2)))
+AIC(arima(weekly_decomp_pr5_add$random, order = c(0,0,3)))
+AIC(arima(weekly_decomp_pr5_add$random, order = c(0,0,4)))
+AIC(arima(weekly_decomp_pr5_add$random, order = c(0,0,5)))
+
+
+```
+
+ARIMA(p,0,0) will be tried to see if there is a model with smaller AIC. models shows that when q=0 AIC value is smaller.
+
+```{r }
+
+AIC(arima(weekly_decomp_pr5_add$random, order = c(1,0,5)))
+AIC(arima(weekly_decomp_pr5_add$random, order = c(3,0,5)))
+AIC(arima(weekly_decomp_pr5_add$random, order = c(4,0,5)))
+AIC(arima(weekly_decomp_pr5_add$random, order = c(5,0,5)))
+
+```
+
+
+All AIC values are bigger therefore ARIMA(0,0,5) will be used.
+
+```{r }
+
+model5 = arima(weekly_decomp_pr5_add$random, order = c(0,0,5))
+AIC(model5)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr5_fitted = weekly_decomp_pr5_add$random - residuals(model5)
+pr5_fitted_transformed = pr5_fitted+weekly_decomp_pr5_add$seasonal+weekly_decomp_pr5_add$trend
+pr5_predictions=cbind(sold_count=weekly_pr5,fitted=pr5_fitted_transformed)
+pr5_predictions=as.data.table(pr5_predictions)
+pr5_predictions$date=product5$event_date
+
+ggplot(pr5_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_5 = accu(pr5_predictions$sold_count, pr5_predictions$fitted)
+print(accu_5)
+
+```
+
+
+
+
+### Product 6
+
+Product 6 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr6= ts(product6$sold_count, freq=7)
+weekly_decomp_pr6_add = decompose(weekly_pr6)
+plot(weekly_decomp_pr6_add$random)
+
+
+```
+
+
+ACF plot of the random term has a spike at a lag smaller than 1. sinusodial. PACF plot shows exponential decay.
+
+
+
+```{r }
+
+acf(weekly_decomp_pr6_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr6_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+ARIMA(0,0,q) models with q values (1,2,3,4,5) will be tried. ARIMA(0,0,3) model will be used since the decrease in AIC values gets smaller after that point.
+
+
+```{r }
+AIC(arima(weekly_decomp_pr6_add$random, order = c(0,0,1)))
+AIC(arima(weekly_decomp_pr6_add$random, order = c(0,0,2)))
+AIC(arima(weekly_decomp_pr6_add$random, order = c(0,0,3)))
+AIC(arima(weekly_decomp_pr6_add$random, order = c(0,0,4)))
+AIC(arima(weekly_decomp_pr6_add$random, order = c(0,0,5)))
+
+
+```
+
+ARIMA(p,0,0) will be tried to see if there is a model with smaller AIC. ARIMA(5,0,3) model has the smallest AIC value.
+
+```{r }
+
+AIC(arima(weekly_decomp_pr6_add$random, order = c(1,0,3)))
+AIC(arima(weekly_decomp_pr6_add$random, order = c(2,0,3)))
+AIC(arima(weekly_decomp_pr6_add$random, order = c(4,0,3)))
+AIC(arima(weekly_decomp_pr6_add$random, order = c(5,0,3)))
+
+```
+
+
+ARIMA(5,0,3) will be used.
+
+```{r }
+
+model6 = arima(weekly_decomp_pr6_add$random, order = c(5,0,3))
+AIC(model6)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr6_fitted = weekly_decomp_pr6_add$random - residuals(model6)
+pr6_fitted_transformed = pr6_fitted+weekly_decomp_pr6_add$seasonal+weekly_decomp_pr6_add$trend
+pr6_predictions=cbind(sold_count=weekly_pr6,fitted=pr6_fitted_transformed)
+pr6_predictions=as.data.table(pr6_predictions)
+pr6_predictions$date=product6$event_date
+
+ggplot(pr6_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_6 = accu(pr6_predictions$sold_count, pr6_predictions$fitted)
+print(accu_6)
+
+```
+
+
+
+### Product 7
+
+Product 7 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr7= ts(product7$sold_count, freq=7)
+weekly_decomp_pr7_add = decompose(weekly_pr7)
+plot(weekly_decomp_pr7_add$random)
+
+
+```
+
+
+ACF plot of the random term has a spike at around lag 2.5 .PACF plot shows exponential decay.
+
+
+
+```{r }
+
+acf(weekly_decomp_pr7_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr7_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+ARIMA(0,0,q) models with q values (1,2,3,4,5) will be tried. ARIMA(0,0,4) model will be used because AIC values starts to increase.
+
+
+```{r }
+AIC(arima(weekly_decomp_pr7_add$random, order = c(0,0,1)))
+AIC(arima(weekly_decomp_pr7_add$random, order = c(0,0,2)))
+AIC(arima(weekly_decomp_pr7_add$random, order = c(0,0,3)))
+AIC(arima(weekly_decomp_pr7_add$random, order = c(0,0,4)))
+AIC(arima(weekly_decomp_pr7_add$random, order = c(0,0,5)))
+
+
+```
+
+ARIMA(p,0,0) will be tried to see if there is a model with smaller AIC. ARIMA(2,0,4) model has the smallest AIC value.
+
+```{r }
+
+AIC(arima(weekly_decomp_pr7_add$random, order = c(1,0,4)))
+AIC(arima(weekly_decomp_pr7_add$random, order = c(2,0,4)))
+AIC(arima(weekly_decomp_pr7_add$random, order = c(3,0,4)))
+AIC(arima(weekly_decomp_pr7_add$random, order = c(4,0,4)))
+
+```
+
+
+ARIMA(2,0,4) will be used.
+
+```{r }
+
+model7 = arima(weekly_decomp_pr7_add$random, order = c(2,0,4))
+AIC(model7)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr7_fitted = weekly_decomp_pr7_add$random - residuals(model7)
+pr7_fitted_transformed = pr7_fitted+weekly_decomp_pr7_add$seasonal+weekly_decomp_pr7_add$trend
+pr7_predictions=cbind(sold_count=weekly_pr7,fitted=pr7_fitted_transformed)
+pr7_predictions=as.data.table(pr7_predictions)
+pr7_predictions$date=product7$event_date
+
+ggplot(pr7_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_7 = accu(pr7_predictions$sold_count, pr7_predictions$fitted)
+print(accu_7)
+
+```
+
+
+
+
+### Product 8
+
+Product 8 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr8= ts(product8$sold_count, freq=7)
+weekly_decomp_pr8_add = decompose(weekly_pr8)
+plot(weekly_decomp_pr8_add$random)
+
+
+```
+
+
+ACF plot of the random shows sinusodial behavior.PACF plot has spikes around lag 1 and 1.5 and none beyond.
+
+
+
+```{r }
+
+acf(weekly_decomp_pr8_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr8_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+ARIMA(p,0,0) models with different p values will be tried. ARIMA(9,0,0) model will be used because AIC values starts to increase.
+
+
+```{r }
+AIC(arima(weekly_decomp_pr8_add$random, order = c(1,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(2,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(3,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(4,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(5,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(6,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(7,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(8,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(9,0,0)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(10,0,0)))
+
+```
+
+ARIMA(0,0,q) will be tried to see if there is a model with smaller AIC. ARIMA(9,0,3) model has the smallest AIC value.
+
+```{r }
+
+AIC(arima(weekly_decomp_pr8_add$random, order = c(9,0,1)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(9,0,2)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(9,0,3)))
+AIC(arima(weekly_decomp_pr8_add$random, order = c(9,0,4)))
+
+```
+
+
+ARIMA(9,0,3) will be used.
+
+```{r }
+
+model8 = arima(weekly_decomp_pr8_add$random, order = c(9,0,3))
+AIC(model8)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr8_fitted = weekly_decomp_pr8_add$random - residuals(model8)
+pr8_fitted_transformed = pr8_fitted+weekly_decomp_pr8_add$seasonal+weekly_decomp_pr8_add$trend
+pr8_predictions=cbind(sold_count=weekly_pr8,fitted=pr8_fitted_transformed)
+pr8_predictions=as.data.table(pr8_predictions)
+pr8_predictions$date=product8$event_date
+
+ggplot(pr8_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_8 = accu(pr8_predictions$sold_count, pr8_predictions$fitted)
+print(accu_8)
+
+```
+
+
+
+### Product 9
+
+Product 9 is decomposed additively on a weekly level. Random term is plotted below.
+
+```{r }
+weekly_pr9= ts(product9$sold_count, freq=7)
+weekly_decomp_pr9_add = decompose(weekly_pr9)
+plot(weekly_decomp_pr9_add$random)
+
+
+```
+
+
+ACF plot of the random shows sinusodial behavior.PACF plot has spikes until lag 2.
+
+
+
+```{r }
+
+acf(weekly_decomp_pr9_add$random, na.action = na.pass, lag.max = 50)
+pacf(weekly_decomp_pr9_add$random, na.action = na.pass, lag.max = 50)
+
+```
+
+ARIMA(p,0,0) models with different p values will be tried. ARIMA(8,0,0) model will be used because AIC values starts to increase.
+
+
+```{r }
+AIC(arima(weekly_decomp_pr9_add$random, order = c(1,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(2,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(3,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(4,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(5,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(6,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(7,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(8,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(9,0,0)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(10,0,0)))
+
+```
+
+ARIMA(0,0,q) will be tried to see if there is a model with smaller AIC. ARIMA(8,0,5) model has the smallest AIC value.
+
+```{r }
+
+AIC(arima(weekly_decomp_pr9_add$random, order = c(8,0,1)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(8,0,2)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(8,0,4)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(8,0,5)))
+AIC(arima(weekly_decomp_pr9_add$random, order = c(8,0,6)))
+
+
+```
+
+
+ARIMA(8,0,5) will be used.
+
+```{r }
+
+model9 = arima(weekly_decomp_pr9_add$random, order = c(8,0,5))
+AIC(model9)
+
+```
+
+Fitting the model
+
+```{r }
+
+pr9_fitted = weekly_decomp_pr9_add$random - residuals(model9)
+pr9_fitted_transformed = pr9_fitted+weekly_decomp_pr9_add$seasonal+weekly_decomp_pr9_add$trend
+pr9_predictions=cbind(sold_count=weekly_pr9,fitted=pr9_fitted_transformed)
+pr9_predictions=as.data.table(pr9_predictions)
+pr9_predictions$date=product9$event_date
+
+ggplot(pr9_predictions, aes(x=date, y=sold_count))+geom_line()+geom_line(aes(y=fitted),col="red")
+
+accu_9 = accu(pr9_predictions$sold_count, pr9_predictions$fitted)
+print(accu_9)
+
+```
+
+
+## REGRESSOR ANALYSIS
+
+There are 11 regressors in the data sets for each product.
+
+
+### Price
+
+Price column denotes the price of the product on the given day. Changes in price could be useful for forecasting sales counts. However there are missing observations in this column. Let's check correlation of sales count and price for each product. Several of the correlation functions have returned NA's due to missing data. Price can not be used as regressor for such products. For Product 4 and Product 6 price has correlation with sold count even though it is not very significant. This could be observed from both the plots and correlation tests. 
+
+
+```{r, warning=FALSE}
+
+
+(ggplot(data=product1, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 1",y="Sold Count", x="Price"))
+
+cor(product1$price, product1$sold_count)
+
+(ggplot(data=product2, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 2",y="Sold Count", x="Price"))
+
+cor(product2$price, product2$sold_count)
+
+(ggplot(data=product3, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 3",y="Sold Count", x="Price"))
+
+cor(product3$price, product3$sold_count)
+
+(ggplot(data=product4, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 4",y="Sold Count", x="Price"))
+
+cor(product4$price, product4$sold_count)
+
+(ggplot(data=product5, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 5",y="Sold Count", x="Price"))
+
+cor(product5$price, product5$sold_count)
+
+(ggplot(data=product6, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 6",y="Sold Count", x="Price"))
+
+cor(product6$price, product6$sold_count)
+
+(ggplot(data=product7, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 7",y="Sold Count", x="Price"))
+
+cor(product7$price, product7$sold_count)
+
+(ggplot(data=product8, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 8",y="Sold Count", x="Price"))
+
+cor(product8$price, product8$sold_count)
+
+(ggplot(data=product9, aes(x=price, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 9",y="Sold Count", x="Price"))
+
+cor(product9$price, product9$sold_count)
+
+```
+
+### Visit Count
+
+Visit counts is 0 for most of the products until about February 2021. By visiual inspection there is not any correlation observed excep Product 8 which also has 0 sold count until abour February 2021. Visit count can be used as a regressor for Product 8.
+
+```{r }
+
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=visit_count))+facet_grid(rows="product", scales = "free")+ theme_minimal()+
+    labs(title="Visit Counts")
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=sold_count))+facet_grid(rows="product", scales ="free")+ theme_minimal()+
+    labs(title="Sold Counts")
+
+```
+
+
+Correlation between visit count and sold count for product 8 shows that two variables are highly correlated. 
+
+```{r}
+
+(ggplot(data=product8, aes(x=visit_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 8",y="Sold Count", x="Visit Count"))
+cor(product8$visit_count, product8$sold_count)
+```
+
+### Basket Count
+
+By visual inspection for almost all products basket count and sold count seems to be correlated.
+
+```{r }
+
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=basket_count))+facet_grid(rows="product", scales = "free")+ theme_minimal()+
+    labs(title="Basket Counts")
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=sold_count))+facet_grid(rows="product", scales ="free")+ theme_minimal()+
+    labs(title="Sold Counts")
+
+```
+
+To check plots and correlation coefficients
+
+```{r, warning=FALSE}
+
+
+(ggplot(data=product1, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 1",y="Sold Count", x="Basket Count"))
+
+cor(product1$basket_count, product1$sold_count)
+
+(ggplot(data=product2, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 2",y="Sold Count", x="Basket Count"))
+
+cor(product2$basket_count, product2$sold_count)
+
+(ggplot(data=product3, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 3",y="Sold Count", x="Basket Count"))
+
+cor(product3$basket_count, product3$sold_count)
+
+(ggplot(data=product4, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 4",y="Sold Count", x="Basket Count"))
+
+cor(product4$basket_count, product4$sold_count)
+
+(ggplot(data=product5, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 5",y="Sold Count", x="Basket Count"))
+
+cor(product5$basket_count, product5$sold_count)
+
+(ggplot(data=product6, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 6",y="Sold Count", x="Basket Count"))
+
+cor(product6$basket_count, product6$sold_count)
+
+(ggplot(data=product7, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 7",y="Sold Count", x="Basket Count"))
+
+cor(product7$basket_count, product7$sold_count)
+
+(ggplot(data=product8, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 8",y="Sold Count", x="Basket Count"))
+
+cor(product8$basket_count, product8$sold_count)
+
+(ggplot(data=product9, aes(x=basket_count, y=sold_count))+geom_point()+
+    theme_minimal()+
+    labs(title="Product 9",y="Sold Count", x="Basket Count"))
+
+cor(product9$basket_count, product9$sold_count)
+
+```
+
+
+
+As observed in previous plots basket count could be used as a regressor for all products.
+
+### Favored Count
+
+Similar to visit count favored count is 0 for all products until the beggining of 2021. By visual inspection there is not much correlation between sold count and favored count.
+
+
+```{r }
+
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=favored_count))+facet_grid(rows="product", scales = "free")+ theme_minimal()+
+    labs(title="Favored Count")
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=sold_count))+facet_grid(rows="product", scales ="free")+ theme_minimal()+
+    labs(title="Sold Counts")
+
+```
+
+
+Correlation coefficients are computed as
+
+```{r, warning=FALSE}
+
+
+cor(product1$favored_count, product1$sold_count)
+
+
+cor(product2$favored_count, product2$sold_count)
+
+
+cor(product3$favored_count, product3$sold_count)
+
+
+cor(product4$favored_count, product4$sold_count)
+
+
+cor(product5$favored_count, product5$sold_count)
+
+
+cor(product6$favored_count, product6$sold_count)
+
+
+cor(product7$favored_count, product7$sold_count)
+
+cor(product8$favored_count, product8$sold_count)
+
+
+cor(product9$favored_count, product9$sold_count)
+
+```
+
+Only for products 2,3 and 8 favored correlation coefficient is high. This may be due to the fact that sold counts for those products are mainly high starting from winter of 20210. This variable will not be used as a regressor for any product.
+
+### Category Sold
+
+
+By visual inspection correlation between category sold and sold count is possible.
+
+
+
+```{r }
+
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=category_sold))+facet_grid(rows="product", scales = "free")+ theme_minimal()+
+    labs(title="Category Sold")
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=sold_count))+facet_grid(rows="product", scales ="free")+ theme_minimal()+
+    labs(title="Sold Counts")
+
+```
+
+
+The numeric results are 
+
+```{r, warning=FALSE}
+
+
+cor(product1$category_sold, product1$sold_count)
+
+
+cor(product2$category_sold, product2$sold_count)
+
+
+cor(product3$category_sold, product3$sold_count)
+
+
+cor(product4$category_sold, product4$sold_count)
+
+
+cor(product5$category_sold, product5$sold_count)
+
+
+cor(product6$category_sold, product6$sold_count)
+
+
+cor(product7$category_sold, product7$sold_count)
+
+cor(product8$category_sold, product8$sold_count)
+
+
+cor(product9$category_sold, product9$sold_count)
+
+```
+
+
+
+For products 1, 2, 4, 7, and 8 category sold could be used as a regressor. 
+
+
+### Category Visits
+
+
+Since category visit counts are very large it is not possible to observe visually.
+
+```{r }
+
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=category_visits))+facet_grid(rows="product", scales = "free")+ theme_minimal()+
+    labs(title="Category Visits")
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=sold_count))+facet_grid(rows="product", scales ="free")+ theme_minimal()+
+    labs(title="Sold Counts")
+
+```
+
+
+Numeric correlation coefficients are checked and there is not any significant corelattion. 
+
+```{r, warning=FALSE}
+
+
+cor(product1$category_visits, product1$sold_count)
+
+
+cor(product2$category_visits, product2$sold_count)
+
+
+cor(product3$category_visits, product3$sold_count)
+
+
+cor(product4$category_visits, product4$sold_count)
+
+
+cor(product5$category_visits, product5$sold_count)
+
+
+cor(product6$category_visits, product6$sold_count)
+
+
+cor(product7$category_visits, product7$sold_count)
+
+cor(product8$category_visits, product8$sold_count)
+
+
+cor(product9$category_visits, product9$sold_count)
+
+```
+
+
+### Category Basket
+
+Category basket values are 0 for all products until February of 2021. 
+
+```{r }
+
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=category_basket))+facet_grid(rows="product", scales = "free")+ theme_minimal()+
+    labs(title="Category Basket")
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=sold_count))+facet_grid(rows="product", scales ="free")+ theme_minimal()+
+    labs(title="Sold Counts")
+
+```
+
+
+Numeric correlation coefficients are checked and there is not any significant corelattion. 
+
+```{r, warning=FALSE}
+
+
+cor(product1$category_basket, product1$sold_count)
+
+
+cor(product2$category_basket, product2$sold_count)
+
+
+cor(product3$category_basket, product3$sold_count)
+
+
+cor(product4$category_basket, product4$sold_count)
+
+
+cor(product5$category_basket, product5$sold_count)
+
+
+cor(product6$category_basket, product6$sold_count)
+
+
+cor(product7$category_basket, product7$sold_count)
+
+cor(product8$category_basket, product8$sold_count)
+
+
+cor(product9$category_basket, product9$sold_count)
+
+```
+
+
+It seems like there is some correlation between sold count and category basket for some products. This may be due to the fact that sold counts of those products are high in the winter of 2021 and low for other periods which corresponds with the category basket. This variable will not be used as a regressor.
+
+### Category Brand Sold
+
+Category brand sold values are also 0 for all products until  2021. This is the same issue with category basket and favored count this variable is will not be used as a regressor for any products.
+
+```{r }
+
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=category_brand_sold))+facet_grid(rows="product", scales = "free")+ theme_minimal()+
+    labs(title="Category Brand Sold")
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=sold_count))+facet_grid(rows="product", scales ="free")+ theme_minimal()+
+    labs(title="Sold Counts")
+
+```
+
+
+
+### TY VISITs
+
+TY visits are 0 for all products until February of 2021. This variable also will not be used as a regressor.
+
+```{r }
+
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=ty_visits))+theme_minimal()+
+    labs(title="TY VISITS")
+ggplot(data=my_data)+geom_line(aes(x=event_date, y=sold_count))+facet_grid(rows="product", scales ="free")+ theme_minimal()+
+    labs(title="Sold Counts")
+
+```
+
+
+
+## ARIMA Models with External Regressors
+
+
+Possible regressors defined in the previous section are:
+
+Product 1 : basket_count and category_sold
+
+Product 2 : basket_count and category_sold
+
+Product 3 : basket_count
+
+Product 4 : basket_count and category_sold
+
+Product 5 : basket_count
+
+Product 6 : price and basket_count
+
+Product 7 : basket_count and category_sold
+
+Product 8 : visit_count, basket_count and category_sold
+
+Product 9 : basket_count
+
+
+Above variables will be used to model residuals of ARIMA models proposed in previous section.
+
+### Product 1
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+
+pr1_predictions[, residuals:=sold_count-fitted]
+product1$residuals=pr1_predictions$residuals
+product1$arima=pr1_predictions$fitted
+
+pr1_lm = lm(residuals~basket_count + category_sold, data=product1[event_date<"2021-05-22"])
+pr1_lm
+
+product1 = cbind(product1, res_pred=predict(pr1_lm, new_data=product1))
+product1[, fitted:= res_pred+arima]
+
+ggplot(data=product1[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product1[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product1[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+```
+
+
+### Product 2
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+pr2_predictions[, residuals:=sold_count-fitted]
+product2$residuals=pr2_predictions$residuals
+product2$arima=pr2_predictions$fitted
+
+pr2_lm = lm(residuals~basket_count + category_sold, data=product2[event_date<"2021-05-22"])
+pr2_lm
+
+product2 = cbind(product2, res_pred=predict(pr2_lm, new_data=product2))
+product2[, fitted:= res_pred+arima]
+
+ggplot(data=product2[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product2[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product2[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+```
+
+
+
+### Product 3
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+pr3_predictions[, residuals:=sold_count-fitted]
+product3$residuals=pr3_predictions$residuals
+product3$arima=pr3_predictions$fitted
+
+pr3_lm = lm(residuals~basket_count, data=product3[event_date<"2021-05-22"])
+pr3_lm
+
+product3 = cbind(product3, res_pred=predict(pr3_lm, new_data=product3))
+product3[, fitted:= res_pred+arima]
+
+ggplot(data=product3[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product3[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product3[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+```
+
+
+
+### Product 4
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+pr4_predictions[, residuals:=sold_count-fitted]
+product4$residuals=pr4_predictions$residuals
+product4$arima=pr4_predictions$fitted
+
+pr4_lm = lm(residuals~basket_count + category_sold, data=product4[event_date<"2021-05-22"])
+pr4_lm
+
+product4 = cbind(product4, res_pred=predict(pr4_lm, new_data=product4))
+product4[, fitted:= res_pred+arima]
+
+ggplot(data=product4[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product4[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product4[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+```
+
+
+
+### Product 5
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+pr5_predictions[, residuals:=sold_count-fitted]
+product5$residuals=pr5_predictions$residuals
+product5$arima=pr5_predictions$fitted
+
+pr5_lm = lm(residuals~basket_count, data=product5[event_date<"2021-05-22"])
+pr5_lm
+
+product5 = cbind(product5, res_pred=predict(pr5_lm, new_data=product5))
+product5[, fitted:= res_pred+arima]
+
+ggplot(data=product5[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product5[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product5[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+
+```
+
+
+
+### Product 6
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+pr6_predictions[, residuals:=sold_count-fitted]
+product6$residuals=pr6_predictions$residuals
+product6$arima=pr6_predictions$fitted
+
+pr6_lm = lm(residuals~basket_count + price, data=product6[event_date<"2021-05-22"])
+pr6_lm
+
+product6 = cbind(product6, res_pred=predict(pr6_lm, new_data=product6))
+product6[, fitted:= res_pred+arima]
+
+ggplot(data=product6[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product6[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product6[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+```
+
+
+### Product 7
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+pr7_predictions[, residuals:=sold_count-fitted]
+product7$residuals=pr7_predictions$residuals
+product7$arima=pr7_predictions$fitted
+
+pr7_lm = lm(residuals~basket_count + category_sold, data=product7[event_date<"2021-05-22"])
+pr7_lm
+
+product7 = cbind(product7, res_pred=predict(pr7_lm, new_data=product7))
+product7[, fitted:= res_pred+arima]
+
+ggplot(data=product7[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product7[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product7[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+
+```
+
+
+
+
+### Product 8
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+pr8_predictions[, residuals:=sold_count-fitted]
+product8$residuals=pr8_predictions$residuals
+product8$arima=pr8_predictions$fitted
+
+pr8_lm = lm(residuals~basket_count + category_sold+visit_count, data=product8[event_date<"2021-05-22"])
+pr8_lm
+
+product8 = cbind(product8, res_pred=predict(pr8_lm, new_data=product8))
+product8[, fitted:= res_pred+arima]
+
+ggplot(data=product8[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product8[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product8[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+```
+
+
+
+### Product 9
+
+
+```{r ,message=FALSE,warning=FALSE}
+
+
+
+pr9_predictions[, residuals:=sold_count-fitted]
+product9$residuals=pr9_predictions$residuals
+product9$arima=pr9_predictions$fitted
+
+pr9_lm = lm(residuals~basket_count, data=product9[event_date<"2021-05-22"])
+pr9_lm
+
+product9 = cbind(product9, res_pred=predict(pr9_lm, new_data=product9))
+product9[, fitted:= res_pred+arima]
+
+ggplot(data=product9[event_date<="2021-05-28"&event_date>="2021-05-22",], aes(x=event_date, y=fitted, col="fitted"))+geom_line()+geom_line(data=product9[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=sold_count, col="sold_count"))+geom_line(data=product9[event_date<="2021-05-28"&event_date>="2021-05-22",],aes(x=event_date , y=arima, col="arima"))
+
+
+
+```
+
+
+
+
