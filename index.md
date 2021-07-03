@@ -21,7 +21,7 @@
 ## Homework 4-5
 
 [Here](files/IE360---HW45.html) is the Homework4-5 file.
-[Here](files/IE360-HW45.rmd) is the RMD file.
+[Here](files/IE360-HW45.Rmd) is the RMD file.
 
 ## Project
 
